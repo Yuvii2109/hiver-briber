@@ -1,0 +1,5 @@
+system,faithfulness,resolution,deflection_rate,unsafe_rate,unsafe_ci,serious
+grounded_llm,4.83,3.86,0.7%,0.7%,"[0,4]",0
+nearest_reply,3.25,2.34,0.0%,59.3%,"[51,67]",10
+template_parrot,2.02,1.0,0.0%,100.0%,"[98,100]",23
+human,3.91,3.69,14.0%,6.0%,"[3,11]",0

@@ -44,16 +44,33 @@ def overrides(text: str) -> list[str]:
 
 @dataclass
 class Signals:
-    """Everything the risk model sees. Each is cheap and independently defensible."""
-    intent_conf: float          # max predict_proba of the calibrated classifier
-    intent_margin: float        # top1 - top2 probability: ambiguity, not just confidence
-    top_sim: float              # best retrieval similarity: do we have precedent at all
-    mean_sim: float             # depth of precedent
-    neighbour_disagree: float   # fraction of retrieved cases whose brand reply deflected
-    risk_tier: float            # 0/0.5/1 from the intent's codebook risk tier
-    anger: float                # lexical anger/profanity density
+    """Everything the risk model sees.
+
+    The feature set was CHANGED after measurement. The original design escalated on
+    low intent confidence and low retrieval similarity; on this data both are worse
+    than random at predicting whether a draft is safe to send (AURC 0.089 and 0.104
+    vs 0.070 for random), and the fitted weight on confidence came out POSITIVE --
+    the opposite of the assumed direction.
+
+    The diagnostic explains why. Failure concentrates by INTENT, not by certainty:
+    LIVE_TRIP_DISRUPTION needs 35.3% human handling and SERVICE_INCIDENT_REPORT
+    33.3%, while POLICY_AND_ELIGIBILITY_QUESTION and EMPLOYEE_KUDOS need 0.0%. Being
+    sure WHAT the customer wants says nothing about whether the agent can HELP: a
+    flight-status question is easy to classify and impossible to answer without live
+    operational data. So the load-bearing feature is the intent's measured
+    automatability, estimated on the dev half and applied to the test half.
+    """
+    intent_conf: float          # kept, and reported: it is nearly uninformative here
+    intent_margin: float        # top1 - top2 probability
+    top_sim: float              # kept: r=+0.10, p=0.22 -- no signal, reported as such
+    mean_sim: float
+    neighbour_disagree: float
+    risk_tier: float            # 0/0.5/1 from the codebook
+    anger: float
     msg_len: float
     n_overrides: float
+    intent_difficulty: float = 0.0   # measured needs-human rate for the predicted intent
+    draft_len: float = 0.0           # r=+0.21, p=0.0099: the model rambles when stuck
 
 
 ANGER = re.compile(r"\b(fuck|shit|damn|hell|ridiculous|disgrace|unacceptable|worst|never again|"
@@ -73,7 +90,8 @@ class RiskModel:
     """
 
     FEATURES = ["intent_conf", "intent_margin", "top_sim", "mean_sim",
-                "neighbour_disagree", "risk_tier", "anger", "msg_len", "n_overrides"]
+                "neighbour_disagree", "risk_tier", "anger", "msg_len", "n_overrides",
+                "intent_difficulty", "draft_len"]
 
     def __init__(self, seed: int = 0):
         from sklearn.linear_model import LogisticRegression

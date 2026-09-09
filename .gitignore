@@ -7,4 +7,6 @@ data/processed/*
 !data/**/.gitkeep
 artifacts/*.pkl
 artifacts/*.npy
+# eval/ is committed on purpose: it is the keyless reproduction path
+!eval/**
 .env
