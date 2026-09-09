@@ -22,6 +22,7 @@ from hiver.escalate.policy import (Signals, RiskModel, overrides, anger_score,
 from hiver.classify.model import EmbeddingIntentClassifier
 from hiver.taxonomy.intents import RISK_TIER
 from hiver.evaluate.stats import wilson
+from hiver.paths import path, teacher_labels
 
 SEED=20260909
 esc=json.load(open(path('escalation'),encoding='utf-8'))
@@ -31,7 +32,6 @@ for e in esc:
     r=R[int(e['tweet_id'])]
     e['needs_human']=bool(e['unsafe']) or int(r['score'])<=2
 
-from hiver.paths import path, teacher_labels
 emb=np.load(path('embeddings')).astype(np.float32)
 meta=pd.read_parquet(path('meta'))
 pos={int(t):i for i,t in enumerate(meta.tweet_id.values)}
