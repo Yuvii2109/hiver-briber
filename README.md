@@ -24,9 +24,16 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # ~40s
 python repro.py
 ```
 
-**Measured: 134 seconds. No network, no API key, no 516MB download.** Everything
-replays from committed artifacts in `eval/`. Add `--demo` to watch the agent run
-end-to-end on real held-out messages.
+**Measured: 104 seconds on a fresh `git clone`. No network, no API key, no 516MB
+download.** Everything replays from committed artifacts in `eval/` (34MB). Add `--demo`
+to watch the agent run end-to-end on real held-out messages.
+
+This was verified by actually cloning the repo to an empty directory and running it,
+not by inspection — and the first two attempts failed. The scripts were reading from
+`artifacts/` and `data/interim/`, which are build outputs and are not committed, so the
+committed bundle existed but nothing exercised it. From inside the source tree the bug
+is invisible, because every path resolves there. `src/hiver/paths.py` now resolves the
+committed bundle first, and the clean-clone run is the check that matters.
 
 `repro.py` prints its own caveats. The most important: cached model outputs are
 **replayed, not re-run**. That is a weaker claim than reproduction and is labelled as
@@ -73,3 +80,13 @@ are not yet done. Both are flagged in `REPORT.md` as outstanding rather than pap
 python scripts/review_labels.py       # adjudicate the golden set (14 of 250 disputed)
 python scripts/judge_calibration.py   # score ~50 replies -> judge-vs-human agreement
 ```
+
+`review_labels.py` puts the 14 disagreements first, because those are the boundaries the
+codebook does not settle; the remaining 236 are agreed and can be spot-checked. Until
+that pass is done, the disputed items are **dropped** from the metrics rather than
+guessed at, and every classifier number is agreement with a model-derived standard
+rather than accuracy. `judge_calibration.py` hides system identity and shuffles order.
+
+Both gaps are stated plainly in `REPORT.md §6` rather than glossed. The brief asks for
+examples *you* hand-labelled; producing them with a model and calling them hand-labelled
+would be the one dishonest thing in this repo.
