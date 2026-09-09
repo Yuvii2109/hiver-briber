@@ -32,7 +32,9 @@ class CaseIndex:
         cand = self.pool
         if before is not None:
             created = pd.to_datetime(self.meta["created"].values[cand], utc=True)
-            cand = cand[created < pd.Timestamp(before).tz_convert("UTC")]
+            ts = pd.Timestamp(before)
+            ts = ts.tz_localize("UTC") if ts.tz is None else ts.tz_convert("UTC")
+            cand = cand[created < ts]
         if cand.size == 0:
             return self.meta.iloc[[]].assign(sim=[])
         sims = self.emb[cand] @ np.asarray(qvec, dtype=np.float32).ravel()
