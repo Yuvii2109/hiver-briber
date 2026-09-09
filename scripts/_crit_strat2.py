@@ -1,0 +1,15 @@
+import pandas as pd, numpy as np, re
+BRAND='Uber_Support'
+df=pd.read_pickle('data/raw/twcs_threaded.pkl'); df['inbound']=df['inbound'].astype(bool)
+bo=df.loc[~df.inbound].groupby('thread')['author_id'].agg(lambda s:s.iloc[0])
+th=set(bo[bo==BRAND].index)
+d=df[df.thread.isin(th)].sort_values(['thread','created_at'])
+first=d[d.inbound].groupby('thread',as_index=False).first()
+ts=pd.to_datetime(first['created_at'],format='%a %b %d %H:%M:%S %z %Y',errors='coerce',utc=True)
+m=ts.dt.to_period('M').value_counts().sort_index()
+print("first-msg volume by month:"); print(m.to_string())
+print("\ntotal",len(first),"parsed",ts.notna().sum())
+q=ts.quantile([.5,.7,.8,.9]).dt.strftime('%Y-%m-%d')
+print("\ntime quantiles of first msgs:\n",q.to_string())
+last20=ts>=ts.quantile(.8)
+print(f"\nlast-20%-by-time slice: n={int(last20.sum())}, from {ts[last20].min()} to {ts.max()}")

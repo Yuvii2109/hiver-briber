@@ -1,0 +1,28 @@
+import pandas as pd, numpy as np, re
+df = pd.read_pickle('data/raw/twcs_threaded.pkl')
+df['inbound']=df['inbound'].astype(bool)
+BR='AmericanAir'
+th=set(df.loc[(~df.inbound)&(df.author_id==BR),'thread'])
+d=df[df.thread.isin(th)].copy()
+d['ts']=pd.to_datetime(d['created_at'],format='%a %b %d %H:%M:%S %z %Y',errors='coerce')
+d=d.sort_values(['thread','ts','tweet_id'])
+DEFL=re.compile(r'\b(dm|direct message|private message|pm us|send us a message|link in bio|call us|email us)\b',re.I)
+b=d[(~d.inbound)&(d.author_id==BR)].copy()
+b['defl']=b.text.fillna('').str.contains(DEFL)
+first=b.groupby('thread').head(1)
+print("TRIVIAL BASELINE ('always deflect to DM') exact-behaviour match rate:")
+print(f"  scored on ALL brand replies (turn-level) : {100*b.defl.mean():.1f}%   n={len(b):,}")
+print(f"  scored on FIRST reply only (thread-level): {100*first.defl.mean():.1f}%   n={len(first):,}")
+print(f"  delta = {100*(first.defl.mean()-b.defl.mean()):+.1f} pp\n")
+# apology/greeting opener rate - another trivial baseline signal
+OPEN=re.compile(r"\b(sorry|apologi|sorry to hear|we're sorry)\b",re.I)
+b['ap']=b.text.fillna('').str.contains(OPEN); f2=b.groupby('thread').head(1)
+print("TRIVIAL BASELINE ('apologise') match rate:")
+print(f"  all replies : {100*b.ap.mean():.1f}%")
+print(f"  first replies: {100*f2.ap.mean():.1f}%   delta {100*(f2.ap.mean()-b.ap.mean()):+.1f} pp\n")
+# customer message length / char profile differs by unit?
+inb=d[d.inbound].copy(); inb['w']=inb.text.fillna('').str.split().str.len()
+fi=inb.groupby('thread').head(1)
+print(f"customer msg mean words: all turns {inb.w.mean():.1f} | opening only {fi.w.mean():.1f}")
+later=inb.drop(fi.index)
+print(f"                          later turns only {later.w.mean():.1f}  (n={len(later):,})")

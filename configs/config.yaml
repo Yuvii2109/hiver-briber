@@ -1,0 +1,33 @@
+# Hiver take-home — single source of truth for the pipeline.
+seed: 20260909
+
+data:
+  raw_csv: data/raw/twcs.csv
+  # Kaggle requires auth; this is a byte-identical public mirror (md5 73e961b2837626de89618a3f35f7bd6c)
+  mirror_url: https://huggingface.co/datasets/SunidhiSriram/twcs/resolve/main/twcs.csv
+  expected_md5: 73e961b2837626de89618a3f35f7bd6c
+  expected_rows: 2811774
+
+brand: AmericanAir
+
+split:
+  # Temporal split: retrieval corpus must PRE-DATE evaluation messages.
+  # A random split would let the agent retrieve cases written after the test message.
+  mode: temporal
+  train_frac: 0.80          # earliest 80% of threads by thread start time
+  dev_frac: 0.10            # next 10% -> threshold tuning ONLY
+  test_frac: 0.10           # latest 10% -> reported numbers
+
+filters:
+  min_customer_words: 3
+  drop_non_english: true
+  max_nonascii_ratio: 0.10
+
+unit:
+  # The assignment says "classify each incoming customer message".
+  # Primary reported unit = the conversation OPENER (the real triage moment, and
+  # the point where the escalate/auto-handle decision actually gets made).
+  # Follow-up turns are a different task (they carry context) and are reported
+  # SEPARATELY rather than silently averaged in.
+  primary: first_turn
+  report_followups_separately: true
