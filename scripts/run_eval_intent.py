@@ -9,12 +9,12 @@ from hiver.classify.model import EmbeddingIntentClassifier, reliability
 from hiver.evaluate.stats import bootstrap_metric, paired_bootstrap, mcnemar, wilson
 
 SEED=20260909
-emb=np.load('artifacts/emb_all_fp16.npy').astype(np.float32)
-meta=pd.read_parquet('artifacts/meta_all.parquet')
+from hiver.paths import path, teacher_labels
+emb=np.load(path('embeddings')).astype(np.float32)
+meta=pd.read_parquet(path('meta'))
 pos={int(t):i for i,t in enumerate(meta.tweet_id.values)}
 
-lab=json.load(open('data/interim/labels_raw.json',encoding='utf-8'))
-teach={int(r['tweet_id']):r['intent'] for r in lab['teach'] if r['intent'] in INTENTS}
+teach={k:v for k,v in teacher_labels().items() if v in INTENTS}
 
 # gold: adjudicated file if the human has run the review tool, else A/B agreement
 adj=pathlib.Path('eval/golden_adjudicated.jsonl')
@@ -100,4 +100,5 @@ for b in bins: print(f"   {b['bin']:12} n={b['n']:3d} conf={b['confidence']:.2f}
 cm=confusion_matrix(y,p['emb_lr'],labels=INTENTS)
 print("\nconfusion matrix, RAW COUNTS (Set A):")
 print(pd.DataFrame(cm,index=[i[:16] for i in INTENTS],columns=[i[:9] for i in INTENTS]).to_string())
+import os; os.makedirs('artifacts',exist_ok=True)
 df.to_csv('artifacts/intent_results.csv',index=False)

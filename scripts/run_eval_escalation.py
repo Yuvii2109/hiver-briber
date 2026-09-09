@@ -24,19 +24,19 @@ from hiver.taxonomy.intents import RISK_TIER
 from hiver.evaluate.stats import wilson
 
 SEED=20260909
-esc=json.load(open('data/interim/escalation_items.json',encoding='utf-8'))
-d=json.load(open('data/interim/gen_outputs.json',encoding='utf-8'))
+esc=json.load(open(path('escalation'),encoding='utf-8'))
+d=json.load(open(path('generation'),encoding='utf-8'))
 R={int(s['tweet_id']):s for s in d['resolution'] if s['system']=='grounded_llm'}
 for e in esc:
     r=R[int(e['tweet_id'])]
     e['needs_human']=bool(e['unsafe']) or int(r['score'])<=2
 
-emb=np.load('artifacts/emb_all_fp16.npy').astype(np.float32)
-meta=pd.read_parquet('artifacts/meta_all.parquet')
+from hiver.paths import path, teacher_labels
+emb=np.load(path('embeddings')).astype(np.float32)
+meta=pd.read_parquet(path('meta'))
 pos={int(t):i for i,t in enumerate(meta.tweet_id.values)}
-lab=json.load(open('data/interim/labels_raw.json',encoding='utf-8'))
 from hiver.taxonomy.intents import INTENTS
-teach={int(r['tweet_id']):r['intent'] for r in lab['teach'] if r['intent'] in INTENTS}
+teach={k:v for k,v in teacher_labels().items() if v in INTENTS}
 tr=[t for t in teach if t in pos]
 clf=EmbeddingIntentClassifier(seed=SEED).fit(emb[[pos[t] for t in tr]],np.array([teach[t] for t in tr]))
 
@@ -129,4 +129,5 @@ for j in list(order[:3])+list(order[-2:]):
     e=esc[j]; a,why=decide(float(risk[j]),tau,reasons[j])
     print(f"  [{a:9}] risk={risk[j]:.2f} needs_human={e['needs_human']}  {why}")
     print(f"      customer: {e['text'][:110]}")
+import os; os.makedirs('artifacts',exist_ok=True)
 json.dump({'coverage':cov.tolist(),'risk':sel.tolist()},open('artifacts/risk_coverage.json','w'))

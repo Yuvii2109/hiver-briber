@@ -1,11 +1,12 @@
 """Generation results. Two axes, never averaged, plus a hard non-LLM deflection rate."""
 import sys, json, collections
 sys.path.insert(0,'src')
+from hiver.paths import path, teacher_labels
 import numpy as np, pandas as pd
 from hiver.generate.responder import is_deflection
 from hiver.evaluate.stats import bootstrap_metric, paired_bootstrap, wilson
 
-d=json.load(open('data/interim/gen_outputs.json',encoding='utf-8'))
+d=json.load(open(path('generation'),encoding='utf-8'))
 items={int(i['tweet_id']):i for i in d['items']}
 SYS=['grounded_llm','nearest_reply','template_parrot','human']
 KEY={'grounded_llm':'draft_llm','nearest_reply':'draft_nearest',
@@ -73,5 +74,7 @@ esc=[{'tweet_id':t,'unsafe':bool(R['grounded_llm'][t].get('send_unsafe')),
       'top_sim':items[t]['top_sim'],'mean_sim':items[t]['mean_sim'],
       'pred_intent':items[t]['pred_intent'],'gold_intent':items[t]['gold_intent'],
       'text':items[t]['text'],'draft':items[t]['draft_llm'],'set':items[t]['set']} for t in ids]
+import os
+os.makedirs('data/interim',exist_ok=True); os.makedirs('artifacts',exist_ok=True)
 json.dump(esc,open('data/interim/escalation_items.json','w',encoding='utf-8'),ensure_ascii=False)
 print(f"\nwrote escalation inputs ({sum(e['unsafe'] for e in esc)}/{len(esc)} drafts judged unsafe to send)")

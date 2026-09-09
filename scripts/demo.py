@@ -1,10 +1,11 @@
 """End-to-end agent on a handful of real held-out messages."""
 import sys, json, textwrap
 sys.path.insert(0,'src')
+from hiver.paths import path, teacher_labels
 import numpy as np, pandas as pd
 from hiver.escalate.policy import overrides, decide
-d=json.load(open('data/interim/gen_outputs.json',encoding='utf-8'))
-esc={int(e['tweet_id']):e for e in json.load(open('data/interim/escalation_items.json',encoding='utf-8'))}
+d=json.load(open(path('generation'),encoding='utf-8'))
+esc={int(e['tweet_id']):e for e in json.load(open(path('escalation'),encoding='utf-8'))}
 R={int(s['tweet_id']):s for s in d['resolution'] if s['system']=='grounded_llm'}
 items=[i for i in d['items'] if int(i['tweet_id']) in esc]
 pick=[items[i] for i in (3,17,41,66,88)]
